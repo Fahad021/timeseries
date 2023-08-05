@@ -84,7 +84,7 @@ class BaseRNNClassifier(mx.gluon.Block):
         #TODO(Sunil): Update when HybridSequential/hybridize is available for RNN/LSTM
         #y = self.forward(mx.sym.var('data'), hidden)
         #y.save('%s/model.json' % model_dir)
-        self.collect_params().save('%s/model.params' % model_dir)
+        self.collect_params().save(f'{model_dir}/model.params')
 
     def compile_model(self, loss=None, lr=3E-3):
         self.collect_params().initialize(mx.init.Xavier(), ctx=self.ctx)
@@ -100,7 +100,7 @@ class BaseRNNClassifier(mx.gluon.Block):
         true_labels = []
         init_state = mx.nd.zeros((self.n_layer, batch_size, self.rnn_size), self.ctx)
         hidden = [init_state] * 2
-        for i, batch in enumerate(data_iterator):
+        for batch in data_iterator:
             data, label = BaseRNNClassifier.get_data(batch, iter_type, self.ctx)
             batch_pred = self.forward(data, hidden)
             #batch_pred = mx.nd.argmax(batch_pred, axis=1)
@@ -115,25 +115,25 @@ class BaseRNNClassifier(mx.gluon.Block):
         met = mx.metric.Accuracy()
         init_state = mx.nd.zeros((self.n_layer, batch_size, self.rnn_size), self.ctx)
         hidden = [init_state] * 2
-        for i, batch in enumerate(data_iterator):
+        for batch in data_iterator:
             data, label = BaseRNNClassifier.get_data(batch, iter_type, self.ctx)
             # Lets do a forward pass only!
             output, hidden = self.forward(data, hidden)
             preds = mx.nd.argmax(output, axis=1)
             met.update(labels=label, preds=preds)
-                
+
         #if self.all_labels is None:
         #    self.all_labels = BaseRNNClassifier.get_all_labels(data_iterator, iter_type)
         #preds = self.predict(data_iterator, iter_type=iter_type, batch_size=batch_size)
         #met.update(labels=mx.nd.array(self.all_labels[:len(preds)]), preds=preds)
-        
+
         return met.get()                   
                     
     def predict(self, data_iterator, iter_type='mxiter', batch_size=128):
         batch_pred_list = []
         init_state = mx.nd.zeros((self.n_layer, batch_size, self.rnn_size), self.ctx)
         hidden = [init_state] * 2
-        for i, batch in enumerate(data_iterator):
+        for batch in data_iterator:
             data, label = BaseRNNClassifier.get_data(batch, iter_type, self.ctx)
             output, hidden = self.forward(data, hidden)
             batch_pred_list.append(output.asnumpy())
@@ -238,7 +238,7 @@ class BaseRNNClassifier(mx.gluon.Block):
         batch_pred_list = []
         init_state = mx.nd.zeros((self.n_layer, batch_size, self.rnn_size), self.ctx)
         hidden = [init_state] * 2
-        for i, batch in enumerate(data_iterator):
+        for batch in data_iterator:
             data, label = BaseRNNClassifier.get_data(batch, iter_type, self.ctx)
             output, hidden = self.forward(data, hidden)
             batch_pred_list.append(output.asnumpy())
@@ -311,12 +311,12 @@ def model_fn(model_dir):
     :param: model_dir The directory where model files are stored.
     :return: a model (in this case a Gluon network)
     """
-    symbol = mx.sym.load('%s/model.json' % model_dir)
+    symbol = mx.sym.load(f'{model_dir}/model.json')
     outputs = mx.symbol.softmax(data=symbol, name='softmax_label')
     inputs = mx.sym.var('data')
     param_dict = gluon.ParameterDict('model_')
     net = gluon.SymbolBlock(outputs, inputs, param_dict)
-    net.load_params('%s/model.params' % model_dir, ctx=mx.cpu())
+    net.load_params(f'{model_dir}/model.params', ctx=mx.cpu())
     return net
 
 
